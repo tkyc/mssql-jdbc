@@ -23,7 +23,7 @@ enum SqlTypeValue {
             .subtract(new BigDecimal("1")), null),
     MONEY(new BigDecimal("-922337203685477.5808"), new BigDecimal("+922337203685477.5807"), null),
     SMALLMONEY(new BigDecimal("-214748.3648"), new BigDecimal("214748.3647"), null),
-    FLOAT(-1.79E308, +1.79E308, 0d),
+    FLOAT(Double.MIN_VALUE, +1.79E308, 0d),
     REAL((float) -3.4E38, (float) +3.4E38, 0f),
     CHAR(null, null, null), // CHAR used by char, nchar, varchar, nvarchar
     BINARY(null, null, null),

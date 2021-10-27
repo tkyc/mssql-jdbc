@@ -429,8 +429,8 @@
 				<configuration>
 					<forkCount>3</forkCount>
 					<reuseForks>true</reuseForks>
-					<argLine>${argLine} --illegal-access=permit -Xmx1024m
-						-XX:MaxPermSize=256m -Djava.library.path=${dllPath}
+					<argLine>
+						${argLine} --illegal-access=permit -Xmx1024m -Djava.library.path=${dllPath}
 					</argLine>
 					<excludedGroups>${excludedGroups}</excludedGroups>
 				</configuration>
@@ -506,7 +506,7 @@
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.8.6</version>
+				<version>0.8.7</version>
 				<executions>
 					<execution>
 						<id>pre-test</id>
