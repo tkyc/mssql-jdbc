@@ -68,7 +68,6 @@ public class PreparedStatementTest extends AbstractTest {
             if (result.next())
                 returnValue = result.getInt(1);
 
-
             return returnValue;
         }
     }
