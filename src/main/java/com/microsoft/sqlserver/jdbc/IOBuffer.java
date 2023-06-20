@@ -2890,6 +2890,11 @@ final class SocketFinder {
         if (addr.isUnresolved())
             throw new java.net.UnknownHostException();
         selectedSocket = getSocketFactory().createSocket();
+
+        if (true) {
+            selectedSocket.bind(new InetSocketAddress(InetAddress.getByName("192.168.1.95"), 0));
+        }
+
         if (!selectedSocket.isConnected()) {
             selectedSocket.connect(addr, timeoutInMilliSeconds);
         }
