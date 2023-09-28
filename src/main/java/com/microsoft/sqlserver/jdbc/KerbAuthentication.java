@@ -225,10 +225,15 @@ final class KerbAuthentication extends SSPIAuthentication {
      * @param impersonatedUserCred
      */
     KerbAuthentication(SQLServerConnection con, String address, int port, GSSCredential impersonatedUserCred,
-            boolean isUserCreated, boolean useDefaultNativeGSSCredential) {
+                       boolean isUserCreated) {
         this(con, address, port);
         this.peerCredentials = impersonatedUserCred;
         this.isUserCreatedCredential = isUserCreated;
+    }
+
+
+    KerbAuthentication(SQLServerConnection con, String address, int port, boolean useDefaultNativeGSSCredential) {
+        this(con, address, port);
         this.useDefaultNativeGSSCredential = useDefaultNativeGSSCredential;
     }
 
@@ -241,9 +246,9 @@ final class KerbAuthentication extends SSPIAuthentication {
 
     void releaseClientContext() {
         try {
-            if (null != peerCredentials && !isUserCreatedCredential) {
+            if (null != peerCredentials && !isUserCreatedCredential && !useDefaultNativeGSSCredential) {
                 peerCredentials.dispose();
-            } else if (null != peerCredentials && isUserCreatedCredential) {
+            } else if (null != peerCredentials && (isUserCreatedCredential || useDefaultNativeGSSCredential)) {
                 peerCredentials = null;
             }
             if (null != peerContext) {

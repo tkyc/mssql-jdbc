@@ -2487,7 +2487,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     }
                     sPropKey = SQLServerDriverBooleanProperty.USE_DEFAULT_GSS_CREDENTIAL.toString();
                     sPropValue = activeConnectionProperties.getProperty(sPropKey);
-                    if(null != sPropValue && isWindows) {
+                    if (null != sPropValue && isWindows) {
                         useDefaultGSSCredential = isBooleanPropertyOn(sPropKey, sPropValue);
                     }
                 } else if (intAuthScheme == AuthenticationScheme.NTLM) {
@@ -5110,7 +5110,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             } else if (AuthenticationScheme.JAVA_KERBEROS == intAuthScheme) {
                 if (null != impersonatedUserCred) {
                     authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
-                            currentConnectPlaceHolder.getPortNumber(), impersonatedUserCred, isUserCreatedCredential, useDefaultGSSCredential);
+                            currentConnectPlaceHolder.getPortNumber(), impersonatedUserCred, isUserCreatedCredential);
+                } else if (useDefaultGSSCredential) {
+                    authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
+                            currentConnectPlaceHolder.getPortNumber(), useDefaultGSSCredential);
                 } else {
                     authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
                             currentConnectPlaceHolder.getPortNumber());
