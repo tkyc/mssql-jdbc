@@ -603,7 +603,8 @@ enum PrepareMethod {
     NONE("none"),
     PREPEXEC("prepexec"), // sp_prepexec, default prepare method
     PREPARE("prepare"),
-    SCOPE_TEMP_TABLES_TO_CONNECTION("scopeTempTablesToConnection");
+    SCOPE_TEMP_TABLES_TO_CONNECTION("scopeTempTablesToConnection"),
+    DIRECT_RPC("directRpc"); // direct TDS RPC for stored procedure calls (no system proc wrapper)
 
     private final String value;
 

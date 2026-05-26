@@ -161,6 +161,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private final boolean usePrepExec;
 
     /**
+     * Flag indicating whether this statement will execute stored procedure calls as direct
+     * TDS RPC requests (true) rather than wrapping them in sp_executesql / sp_prepexec.
+     * Set only when prepareMethod=directRpc AND the SQL is a stored procedure call
+     * (procedureName != null) AND bReturnValueSyntax is false.
+     */
+    private final boolean isDirectRPCExecution;
+
+    /**
      * For caching data related to batch insert with bulkcopy
      */
     private SQLServerBulkCopy bcOperation = null;
@@ -326,6 +334,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (prepareMethod.equals(PrepareMethod.NONE.toString())) {
             isDirectSqlExecution = true;
             usePrepExec = false;
+            isDirectRPCExecution = false;
         } else if (prepareMethod.equals(PrepareMethod.SCOPE_TEMP_TABLES_TO_CONNECTION.toString())) {
             if (containsTemporaryTableOperations(userSQL)) {
                 isDirectSqlExecution = true;
@@ -334,12 +343,22 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 isDirectSqlExecution = false;
                 usePrepExec = true;
             }
+            isDirectRPCExecution = false;
         } else if (prepareMethod.equals(PrepareMethod.PREPEXEC.toString())) {
             isDirectSqlExecution = false;
             usePrepExec = true;
+            isDirectRPCExecution = false;
+        } else if (prepareMethod.equals(PrepareMethod.DIRECT_RPC.toString())) {
+            isDirectSqlExecution = false;
+            usePrepExec = false;
+            // Direct RPC only applies to stored procedure calls without return value syntax.
+            // bReturnValueSyntax (? = call proc()) requires the sp_executesql wrapper to
+            // capture the RETURN value as an output parameter; fall back for that case.
+            isDirectRPCExecution = (null != procedureName) && !bReturnValueSyntax;
         } else {
             isDirectSqlExecution = false;
             usePrepExec = false;
+            isDirectRPCExecution = false;
         }
     }
 
@@ -1323,6 +1342,29 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return false;
     }
 
+    /**
+     * Builds the TDS RPC request header for a direct stored procedure call.
+     * Writes the procedure name directly into the packet rather than routing
+     * through sp_prepexec / sp_executesql / sp_execute.
+     * outParamIndexAdjustment is set to 0: no system-proc OUT params precede
+     * the user's OUT params in the server's response.
+     */
+    private void buildDirectRPCParams(TDSWriter tdsWriter) throws SQLServerException {
+        if (getStatementLogger().isLoggable(java.util.logging.Level.FINE))
+            getStatementLogger().fine(toString() + ": calling stored procedure directly via RPC: " + procedureName);
+
+        expectPrepStmtHandle = false;
+        executedSqlDirectly = true;
+        expectCursorOutParams = false;
+        outParamIndexAdjustment = 0;
+        resetPrepStmtHandle(false);
+
+        tdsWriter.writeShort((short) procedureName.length());
+        tdsWriter.writeString(procedureName);
+        tdsWriter.writeByte((byte) 0x00); // RPC option flags 1
+        tdsWriter.writeByte((byte) 0x00); // RPC option flags 2
+    }
+
     private boolean doPrepExec(TDSWriter tdsWriter, Parameter[] params, boolean hasNewTypeDefinitions,
             boolean hasExistingTypeDefinitions, TDSCommand command) throws SQLServerException {
 
@@ -1345,6 +1387,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             resetPrepStmtHandle(false);
 
             return false; // No preparation needed
+        }
+
+        // For prepareMethod=directRpc with a stored procedure call, bypass all system
+        // stored procedure wrappers and invoke the procedure by name directly via TDS RPC.
+        if (isDirectRPCExecution) {
+            buildDirectRPCParams(tdsWriter);
+            sendParamsByRPC(tdsWriter, params);
+            return false;
         }
 
         // Cursors don't use statement pooling.
